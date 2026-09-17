@@ -25,7 +25,7 @@ const GOOGLE_SCRIPT_URL =
 // Google Drive folder shown in the QR code.
 // Replace PASTE_FOLDER_ID with the ID of your event's Drive folder.
 const GOOGLE_DRIVE_FOLDER_URL =
-    "https://drive.google.com/drive/folders/1ebG7aFVdHIKLrXDedEtNM-Y0A0J97L1S?usp=sharing";
+    "https://drive.google.com/drive/folders/1ebG7aFVdHIKLrXDedEtNM-Y0A0J97L1S";
 
 
 const FRAME_WIDTH = 685;
