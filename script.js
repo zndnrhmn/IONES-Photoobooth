@@ -22,6 +22,11 @@
 const GOOGLE_SCRIPT_URL =
     "https://script.google.com/macros/s/AKfycbwbC6aVWF8ufwBy4GLe6eluiMJXXU-h3QapD55_ct1W8Yp6XhEwrXm1YKWbJvgDMmYS/exec";
 
+// Google Drive folder shown in the QR code.
+// Replace PASTE_FOLDER_ID with the ID of your event's Drive folder.
+const GOOGLE_DRIVE_FOLDER_URL =
+    "https://drive.google.com/drive/folders/1ebG7aFVdHIKLrXDedEtNM-Y0A0J97L1S?usp=sharing";
+
 
 const FRAME_WIDTH = 685;
 const FRAME_HEIGHT = 2048;
@@ -85,6 +90,9 @@ const video =
 
 const countdownElement =
     document.getElementById("countdown");
+
+const flashElement =
+    document.getElementById("screenFlash");
 
 const photoCounter =
     document.getElementById("photoCounter");
@@ -217,6 +225,26 @@ function runCountdown(seconds = 3) {
             }
         }, 1000);
     });
+}
+
+
+/* =========================================================
+   SCREEN FLASH
+   ========================================================= */
+
+function triggerScreenFlash() {
+    if (!flashElement) return;
+
+    flashElement.classList.remove("flash-active");
+
+    // Force a reflow so repeated flashes always animate.
+    void flashElement.offsetWidth;
+
+    flashElement.classList.add("flash-active");
+
+    setTimeout(() => {
+        flashElement.classList.remove("flash-active");
+    }, 220);
 }
 
 
@@ -435,6 +463,10 @@ async function takePhotos() {
 
         await runCountdown(3);
 
+        // Flash the iPad screen for every photo.
+        triggerScreenFlash();
+
+        // Capture just after the flash starts.
         const photo =
             capturePhoto();
 
@@ -481,7 +513,9 @@ async function showFinalResult() {
         resultImage.src =
             finalImageData;
 
-        qrCode.innerHTML = "";
+        // The QR code always points to the shared Google Drive folder,
+        // not to an individual photo.
+        generateQRCode(GOOGLE_DRIVE_FOLDER_URL);
 
         /*
          * Upload if Google Apps Script
@@ -523,7 +557,7 @@ async function showFinalResult() {
         console.error(error);
 
         statusElement.textContent =
-            "Photo created. You can still download it.";
+            "Photo created. Scan the QR code to open the photo folder, or download the photo here.";
 
     }
 
@@ -698,17 +732,9 @@ async function uploadToGoogleDrive(imageData) {
                 );
 
 
-                /*
-                 * Generate QR.
-                 */
-
-                generateQRCode(
-                    finalDownloadURL
-                );
-
-
+                // QR code stays linked to the shared Drive folder.
                 statusElement.textContent =
-                    "Saved successfully! Scan the QR code to download.";
+                    "Saved successfully! Scan the QR code to open the photo folder.";
 
 
                 resolve(result);
@@ -740,14 +766,14 @@ function generateQRCode(url) {
 
     qrCode.innerHTML = "";
 
-    if (!url) {
+    if (!url || url.includes("PASTE_FOLDER_ID")) {
 
         console.error(
-            "QR ERROR: URL is empty."
+            "QR ERROR: Google Drive folder URL is not configured."
         );
 
         qrCode.innerHTML =
-            "<p style='color:#000;text-align:center;font-size:12px;'>QR URL missing</p>";
+            "<p style='color:#000;text-align:center;font-size:12px;'>Set your Google Drive folder URL in script.js</p>";
 
         return;
     }

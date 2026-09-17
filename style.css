@@ -151,6 +151,34 @@ button {
     transform: scaleX(-1);
 }
 
+/* Full-screen iPad "flash" effect for every photo */
+#screenFlash {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    background: #ffffff;
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+}
+
+#screenFlash.flash-active {
+    visibility: visible;
+    animation: screenFlash 220ms ease-out;
+}
+
+@keyframes screenFlash {
+    0% {
+        opacity: 0;
+    }
+    12% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
 .camera-overlay {
     position: absolute;
     inset: 0;
@@ -324,6 +352,14 @@ button {
 #qrcode img,
 #qrcode canvas {
     display: block;
+}
+
+.qr-hint {
+    margin-top: 10px;
+    max-width: 220px;
+    font-size: 13px;
+    line-height: 1.35;
+    opacity: 0.75;
 }
 
 .status {
