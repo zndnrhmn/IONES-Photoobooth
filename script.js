@@ -572,188 +572,91 @@ async function showFinalResult() {
 async function uploadToGoogleDrive(imageData) {
 
     statusElement.textContent =
-        "Uploading to Google Drive...";
-
+        "Uploading photo to Google Drive...";
 
     const fileName =
         "IONES-Photobooth-" +
         Date.now() +
-        ".png";
+        ".jpg";
+
+    try {
+        /*
+         * iPad/Safari can be unreliable when a very large PNG is placed
+         * inside a hidden form input. Compress the final photostrip to
+         * JPEG before sending it. The original PNG is still kept for the
+         * Download Photo button.
+         */
+        const uploadData = await compressForUpload(imageData);
+
+        /*
+         * Send a simple URL-encoded POST with no-cors.
+         * This does not require the browser to read the Apps Script
+         * response, which avoids Safari cross-origin iframe problems.
+         */
+        const body = new URLSearchParams();
+        body.append("image", uploadData);
+        body.append("fileName", fileName);
+
+        await fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+            },
+            body: body.toString()
+        });
+
+        finalDownloadURL = null;
+
+        statusElement.textContent =
+            "Photo uploaded to Google Drive. Scan the QR code to open the photo folder.";
+
+    } catch (error) {
+        console.error("Google Drive upload error:", error);
+        throw error;
+    }
+}
 
 
+/*
+ * Compress the final photostrip before uploading.
+ * This is specifically to make the upload more reliable on iPad/Safari.
+ */
+function compressForUpload(imageData) {
     return new Promise((resolve, reject) => {
+        const image = new Image();
 
-        /*
-         * Create hidden iframe.
-         */
+        image.onload = () => {
+            try {
+                const canvas = document.createElement("canvas");
+                canvas.width = image.naturalWidth || FRAME_WIDTH;
+                canvas.height = image.naturalHeight || FRAME_HEIGHT;
 
-        const iframe =
-            document.createElement("iframe");
+                const ctx = canvas.getContext("2d", {
+                    alpha: false
+                });
 
-        iframe.name =
-            "ionesUploadFrame";
+                // White background for JPEG.
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 
-        iframe.style.display = "none";
-
-        document.body.appendChild(iframe);
-
-
-        /*
-         * Create form.
-         */
-
-        const form =
-            document.createElement("form");
-
-        form.method = "POST";
-
-        form.action =
-            GOOGLE_SCRIPT_URL;
-
-        form.target =
-            "ionesUploadFrame";
-
-        form.style.display = "none";
-
-
-        /*
-         * Image data.
-         */
-
-        const imageInput =
-            document.createElement("input");
-
-        imageInput.type = "hidden";
-
-        imageInput.name = "image";
-
-        imageInput.value =
-            imageData;
-
-
-        /*
-         * File name.
-         */
-
-        const fileInput =
-            document.createElement("input");
-
-        fileInput.type = "hidden";
-
-        fileInput.name = "fileName";
-
-        fileInput.value =
-            fileName;
-
-
-        form.appendChild(imageInput);
-        form.appendChild(fileInput);
-
-        document.body.appendChild(form);
-
-
-        /*
-         * Listen for response from Apps Script.
-         */
-
-        const messageHandler =
-            function(event) {
-
-                if (!event.data) {
-                    return;
-                }
-
-
-                if (
-                    typeof event.data !==
-                    "object"
-                ) {
-                    return;
-                }
-
-
-                const result =
-                    event.data;
-
-
-                /*
-                 * Remove listener.
-                 */
-
-                window.removeEventListener(
-                    "message",
-                    messageHandler
+                const compressed = canvas.toDataURL(
+                    "image/jpeg",
+                    0.88
                 );
 
+                resolve(compressed);
+            } catch (error) {
+                reject(error);
+            }
+        };
 
-                /*
-                 * Remove temporary elements.
-                 */
+        image.onerror = () => {
+            reject(new Error("Could not prepare image for upload."));
+        };
 
-                setTimeout(() => {
-
-                    form.remove();
-                    iframe.remove();
-
-                }, 500);
-
-
-                /*
-                 * Check result.
-                 */
-
-                if (!result.success) {
-
-                    statusElement.textContent =
-                        "Upload failed: " +
-                        result.message;
-
-                    reject(
-                        new Error(
-                            result.message
-                        )
-                    );
-
-                    return;
-                }
-
-
-                /*
-                 * SUCCESS!
-                 */
-
-                finalDownloadURL =
-                    result.url;
-
-
-                console.log(
-                    "Google Drive URL:",
-                    finalDownloadURL
-                );
-
-
-                // QR code stays linked to the shared Drive folder.
-                statusElement.textContent =
-                    "Saved successfully! Scan the QR code to open the photo folder.";
-
-
-                resolve(result);
-
-            };
-
-
-        window.addEventListener(
-            "message",
-            messageHandler
-        );
-
-
-        /*
-         * Submit upload.
-         */
-
-        form.submit();
-
+        image.src = imageData;
     });
 }
 
