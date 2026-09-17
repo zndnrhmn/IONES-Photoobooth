@@ -23,20 +23,9 @@ const GOOGLE_SCRIPT_URL =
     "https://script.google.com/macros/s/AKfycbwbC6aVWF8ufwBy4GLe6eluiMJXXU-h3QapD55_ct1W8Yp6XhEwrXm1YKWbJvgDMmYS/exec";
 
 
-/* =========================================================
-   FRAME SIZE
-   Your uploaded IONES frame:
-   685 x 2048 px
-   ========================================================= */
-
 const FRAME_WIDTH = 685;
 const FRAME_HEIGHT = 2048;
 
-
-/* =========================================================
-   PHOTO SLOT POSITIONS
-   These positions match the uploaded IONES frame.
-   ========================================================= */
 
 const PHOTO_SLOTS = [
     {
@@ -548,108 +537,198 @@ async function showFinalResult() {
 
 async function uploadToGoogleDrive(imageData) {
 
+    statusElement.textContent =
+        "Uploading to Google Drive...";
+
+
     const fileName =
         "IONES-Photobooth-" +
         Date.now() +
         ".png";
 
-    statusElement.textContent =
-        "Uploading to Google Drive...";
+
+    return new Promise((resolve, reject) => {
+
+        /*
+         * Create hidden iframe.
+         */
+
+        const iframe =
+            document.createElement("iframe");
+
+        iframe.name =
+            "ionesUploadFrame";
+
+        iframe.style.display = "none";
+
+        document.body.appendChild(iframe);
 
 
-    try {
+        /*
+         * Create form.
+         */
 
-        const response = await fetch(
-            GOOGLE_SCRIPT_URL,
-            {
-                method: "POST",
+        const form =
+            document.createElement("form");
+
+        form.method = "POST";
+
+        form.action =
+            GOOGLE_SCRIPT_URL;
+
+        form.target =
+            "ionesUploadFrame";
+
+        form.style.display = "none";
+
+
+        /*
+         * Image data.
+         */
+
+        const imageInput =
+            document.createElement("input");
+
+        imageInput.type = "hidden";
+
+        imageInput.name = "image";
+
+        imageInput.value =
+            imageData;
+
+
+        /*
+         * File name.
+         */
+
+        const fileInput =
+            document.createElement("input");
+
+        fileInput.type = "hidden";
+
+        fileInput.name = "fileName";
+
+        fileInput.value =
+            fileName;
+
+
+        form.appendChild(imageInput);
+        form.appendChild(fileInput);
+
+        document.body.appendChild(form);
+
+
+        /*
+         * Listen for response from Apps Script.
+         */
+
+        const messageHandler =
+            function(event) {
+
+                if (!event.data) {
+                    return;
+                }
+
+
+                if (
+                    typeof event.data !==
+                    "object"
+                ) {
+                    return;
+                }
+
+
+                const result =
+                    event.data;
+
 
                 /*
-                 * Jangan menggunakan application/json
-                 * karena bisa menyebabkan preflight/CORS.
+                 * Remove listener.
                  */
 
-                headers: {
-                    "Content-Type":
-                        "text/plain;charset=utf-8"
-                },
+                window.removeEventListener(
+                    "message",
+                    messageHandler
+                );
 
-                body: JSON.stringify({
-                    image: imageData,
-                    fileName: fileName
-                })
-            }
+
+                /*
+                 * Remove temporary elements.
+                 */
+
+                setTimeout(() => {
+
+                    form.remove();
+                    iframe.remove();
+
+                }, 500);
+
+
+                /*
+                 * Check result.
+                 */
+
+                if (!result.success) {
+
+                    statusElement.textContent =
+                        "Upload failed: " +
+                        result.message;
+
+                    reject(
+                        new Error(
+                            result.message
+                        )
+                    );
+
+                    return;
+                }
+
+
+                /*
+                 * SUCCESS!
+                 */
+
+                finalDownloadURL =
+                    result.url;
+
+
+                console.log(
+                    "Google Drive URL:",
+                    finalDownloadURL
+                );
+
+
+                /*
+                 * Generate QR.
+                 */
+
+                generateQRCode(
+                    finalDownloadURL
+                );
+
+
+                statusElement.textContent =
+                    "Saved successfully! Scan the QR code to download.";
+
+
+                resolve(result);
+
+            };
+
+
+        window.addEventListener(
+            "message",
+            messageHandler
         );
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                "Server error: " +
-                response.status
-            );
-
-        }
-
-
-        const result =
-            await response.json();
-
-
-        console.log(
-            "Google Apps Script response:",
-            result
-        );
-
-
-        if (!result.success) {
-
-            throw new Error(
-                result.message ||
-                "Upload failed."
-            );
-
-        }
 
 
         /*
-         * Save download URL
+         * Submit upload.
          */
 
-        finalDownloadURL =
-            result.url;
+        form.submit();
 
-
-        /*
-         * Generate QR
-         */
-
-        generateQRCode(
-            finalDownloadURL
-        );
-
-
-        statusElement.textContent =
-            "Saved successfully! Scan the QR code to download.";
-
-
-    } catch (error) {
-
-        console.error(
-            "UPLOAD ERROR:",
-            error
-        );
-
-
-        statusElement.textContent =
-            "Upload failed: " +
-            error.message;
-
-        /*
-         * Keep the normal download button working.
-         */
-
-    }
+    });
 }
 
 
@@ -661,12 +740,54 @@ function generateQRCode(url) {
 
     qrCode.innerHTML = "";
 
-    new QRCode(qrCode, {
-        text: url,
-        width: 180,
-        height: 180,
-        correctLevel: QRCode.CorrectLevel.H
-    });
+    if (!url) {
+
+        console.error(
+            "QR ERROR: URL is empty."
+        );
+
+        qrCode.innerHTML =
+            "<p style='color:#000;text-align:center;font-size:12px;'>QR URL missing</p>";
+
+        return;
+    }
+
+
+    console.log(
+        "Generating QR for:",
+        url
+    );
+
+
+    if (
+        typeof QRCode ===
+        "undefined"
+    ) {
+
+        console.error(
+            "QRCode library is not loaded."
+        );
+
+        qrCode.innerHTML =
+            "<p style='color:#000;text-align:center;font-size:12px;'>QR library failed to load</p>";
+
+        return;
+    }
+
+
+    new QRCode(
+        qrCode,
+        {
+            text: url,
+
+            width: 180,
+
+            height: 180,
+
+            correctLevel:
+                QRCode.CorrectLevel.H
+        }
+    );
 }
 
 
