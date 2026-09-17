@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0,
+                   maximum-scale=1.0, user-scalable=no">
+    <title>IONES 2026 Photobooth</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+</head>
+
+<body>
+    <main id="app">
+
+        <!-- START SCREEN -->
+        <section id="startScreen" class="screen active">
+            <div class="start-content">
+                <h1>IONES</h1>
+                <div class="year">2026</div>
+                <p class="subtitle">"Creating Bonds Beyond the Beginning"</p>
+
+                <button id="startButton" class="primary-button">
+                    START PHOTOBOOTH
+                </button>
+
+                <p class="hint">Make memories together ✨</p>
+            </div>
+        </section>
+
+        <!-- CAMERA SCREEN -->
+        <section id="cameraScreen" class="screen">
+            <div class="camera-container">
+
+                <video id="video" autoplay playsinline muted></video>
+
+                <div class="camera-overlay"></div>
+
+                <div class="camera-info">
+                    <strong>Get Ready! 📸</strong>
+                    <span id="photoCounter">Photo 1 of 4</span>
+                </div>
+
+                <div id="countdown" aria-live="polite"></div>
+
+                <button id="captureButton"
+                        class="shutter-button"
+                        aria-label="Take photo"></button>
+            </div>
+        </section>
+
+        <!-- RESULT SCREEN -->
+        <section id="resultScreen" class="screen result-screen">
+            <h2>Your IONES Memory ✨</h2>
+
+            <div class="result-layout">
+                <div class="preview-wrapper">
+                    <img id="resultImage"
+                         class="photostrip-preview"
+                         alt="IONES photostrip">
+                </div>
+
+                <div class="download-panel">
+                    <h3>Scan to Download 📱</h3>
+
+                    <div id="qrcode"></div>
+
+                    <p id="status" class="status">
+                        Preparing your photo...
+                    </p>
+
+                    <button id="downloadButton"
+                            class="primary-button">
+                        Download Photo
+                    </button>
+
+                    <button id="retakeButton"
+                            class="secondary-button">
+                        Retake Photos
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- LOADING -->
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Saving your memory...</p>
+        </div>
+
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
