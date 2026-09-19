@@ -1,101 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0,
-                   maximum-scale=1.0, user-scalable=no">
-    <title>IONES 2026 Photobooth</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>IONES 2026 Photobooth</title>
+<link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-    <main id="app">
 
-        <!-- START SCREEN -->
-        <section id="startScreen" class="screen active">
-            <div class="start-content">
-                <h1>IONES</h1>
-                <div class="year">2026</div>
-                <p class="subtitle">"Creating Bonds Beyond the Beginning"</p>
+<main class="app">
 
-                <button id="startButton" class="primary-button">
-                    START PHOTOBOOTH
-                </button>
+<section id="startScreen" class="screen active">
+    <div class="start-card">
+        <div class="brand">IONES <span>2026</span></div>
+        <h1>Capture Your IONES Memory ✨</h1>
+        <p>Creating Bonds Beyond the Beginning</p>
+        <button id="startButton" class="primary-btn">START PHOTOBOOTH</button>
+    </div>
+</section>
 
-                <p class="hint">Make memories together ✨</p>
-            </div>
-        </section>
+<section id="frameScreen" class="screen">
+    <div class="selector-card">
+        <h1>Choose Your Frame ✨</h1>
+        <p>Select a design before taking your photos.</p>
 
-        <!-- CAMERA SCREEN -->
-        <section id="cameraScreen" class="screen">
-            <div class="camera-container">
+        <div class="frame-grid">
+            <button class="frame-option" data-frame="frame1" type="button">
+                <img id="framePreview1" alt="Frame 1 preview">
+                <span>Frame 1</span>
+                <small>4 Photos</small>
+            </button>
 
-                <video id="video" autoplay playsinline muted></video>
-
-                <!-- Full-screen white flash for every photo -->
-                <div id="screenFlash" aria-hidden="true"></div>
-
-                <div class="camera-overlay"></div>
-
-                <div class="camera-info">
-                    <strong>Get Ready! 📸</strong>
-                    <span id="photoCounter">Photo 1 of 4</span>
-                </div>
-
-                <div id="countdown" aria-live="polite"></div>
-
-                <button id="captureButton"
-                        class="shutter-button"
-                        aria-label="Take photo"></button>
-            </div>
-        </section>
-
-        <!-- RESULT SCREEN -->
-        <section id="resultScreen" class="screen result-screen">
-            <h2>Your IONES Memory ✨</h2>
-
-            <div class="result-layout">
-                <div class="preview-wrapper">
-                    <img id="resultImage"
-                         class="photostrip-preview"
-                         alt="IONES photostrip">
-                </div>
-
-                <div class="download-panel">
-                    <h3>Photo Folder 📱</h3>
-
-                    <div id="qrcode"></div>
-
-                    <p class="qr-hint">
-                        Scan to open the IONES photo folder
-                    </p>
-
-                    <p id="status" class="status">
-                        Preparing your photo...
-                    </p>
-
-                    <button id="downloadButton"
-                            class="primary-button">
-                        Download Photo
-                    </button>
-
-                    <button id="retakeButton"
-                            class="secondary-button">
-                        Retake Photos
-                    </button>
-                </div>
-            </div>
-        </section>
-
-        <!-- LOADING -->
-        <div id="loading" class="loading">
-            <div class="spinner"></div>
-            <p>Saving your memory...</p>
+            <button class="frame-option" data-frame="frame2" type="button">
+                <img id="framePreview2" alt="Frame 2 preview">
+                <span>Frame 2</span>
+                <small>2 Photos</small>
+            </button>
         </div>
 
-    </main>
+        <button id="continueButton" class="primary-btn" disabled>CONTINUE</button>
+    </div>
+</section>
+
+<section id="cameraScreen" class="screen camera-screen">
+    <div class="camera-wrap">
+        <video id="video" autoplay playsinline muted></video>
+        <div id="flashOverlay"></div>
+
+        <div class="camera-ui">
+            <div id="photoProgress">Photo 1</div>
+            <div id="countdown">8</div>
+            <div class="tip">Get ready! The screen will flash before each photo.</div>
+        </div>
+    </div>
+</section>
+
+<section id="resultScreen" class="screen">
+    <div class="result-layout">
+        <div class="result-photo-card">
+            <img id="resultImage" alt="Your IONES photostrip">
+        </div>
+
+        <div class="result-card">
+            <h1>Your IONES Memory ✨</h1>
+            <p id="status">Uploading photo to Google Drive...</p>
+
+            <div class="qr-title">SCAN TO OPEN PHOTO FOLDER</div>
+            <div id="qrCode" class="qr-box"></div>
+
+            <div class="button-row">
+                <button id="downloadButton" class="primary-btn">DOWNLOAD PHOTO</button>
+                <button id="retakeButton" class="secondary-btn">RETAKE</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

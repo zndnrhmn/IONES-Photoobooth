@@ -1,147 +1,160 @@
-* {
-    box-sizing: border-box;
+
+* { box-sizing: border-box; }
+
+html, body {
     margin: 0;
-    padding: 0;
-    -webkit-tap-highlight-color: transparent;
-}
-
-html,
-body {
     width: 100%;
-    height: 100%;
-    overflow: hidden;
-    font-family: Arial, Helvetica, sans-serif;
-    background: #080022;
-    color: #ffffff;
+    min-height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #08052b;
+    color: white;
+    overflow-x: hidden;
 }
 
 body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    min-height: 100vh;
 }
 
-button {
-    font-family: inherit;
-    -webkit-appearance: none;
-}
-
-#app {
-    position: relative;
+.app {
     width: 100%;
-    height: 100%;
-    overflow: hidden;
+    min-height: 100vh;
 }
 
 .screen {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
     display: none;
+    min-height: 100vh;
+    width: 100%;
+    padding:
+        max(20px, env(safe-area-inset-top))
+        max(20px, env(safe-area-inset-right))
+        max(20px, env(safe-area-inset-bottom))
+        max(20px, env(safe-area-inset-left));
+    align-items: center;
+    justify-content: center;
 }
 
 .screen.active {
     display: flex;
 }
 
-/* =========================
-   START SCREEN
-========================= */
-
-#startScreen {
-    justify-content: center;
-    align-items: center;
+.start-card,
+.selector-card,
+.result-card {
+    width: min(100%, 980px);
+    padding: 36px;
+    border-radius: 28px;
+    background: rgba(18, 12, 73, .92);
+    border: 1px solid rgba(255,255,255,.16);
+    box-shadow: 0 20px 60px rgba(0,0,0,.35);
     text-align: center;
-    padding: 24px;
-
-    background:
-        radial-gradient(circle at 50% 15%, #283a96 0%, transparent 35%),
-        radial-gradient(circle at 20% 80%, #32106d 0%, transparent 35%),
-        #080022;
 }
 
-.start-content {
-    max-width: 800px;
-}
-
-.start-content h1 {
-    font-size: clamp(55px, 13vw, 120px);
-    line-height: 0.85;
+.brand {
+    font-size: clamp(42px, 8vw, 82px);
     font-weight: 900;
+    letter-spacing: -3px;
+}
+
+.brand span {
+    display: block;
+    font-size: .42em;
     letter-spacing: 2px;
-
-    text-shadow:
-        0 0 12px #00aaff,
-        0 0 30px #0066ff,
-        0 0 55px #6a00ff;
 }
 
-.year {
-    margin-top: 4px;
-    font-size: clamp(30px, 6vw, 60px);
-    font-weight: 900;
-    color: #168cff;
-    text-shadow: 0 0 18px #006eff;
+h1 {
+    margin: 12px 0 8px;
+    font-size: clamp(26px, 4vw, 46px);
 }
 
-.subtitle {
-    margin-top: 22px;
-    font-size: clamp(17px, 3vw, 30px);
-    font-weight: 800;
-    color: #ffd800;
-    text-shadow:
-        0 0 8px #ff9900,
-        0 0 20px #ff6600;
-}
-
-.primary-button,
-.secondary-button {
-    border: 0;
-    cursor: pointer;
-    font-weight: 800;
-    color: #ffffff;
-    border-radius: 999px;
-    transition: transform 0.15s ease, opacity 0.15s ease;
-}
-
-.primary-button:active,
-.secondary-button:active {
-    transform: scale(0.95);
-}
-
-.primary-button {
-    margin-top: 42px;
-    padding: 17px 38px;
+p {
+    opacity: .88;
     font-size: 18px;
-
-    background: linear-gradient(135deg, #006eff, #7200ff);
-
-    box-shadow:
-        0 0 15px #006eff,
-        0 0 35px #6a00ff;
 }
 
-.hint {
-    margin-top: 18px;
-    font-size: 14px;
-    opacity: 0.7;
+.primary-btn,
+.secondary-btn {
+    border: 0;
+    border-radius: 999px;
+    padding: 17px 28px;
+    font-size: 17px;
+    font-weight: 800;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
 }
 
-/* =========================
-   CAMERA
-========================= */
-
-#cameraScreen {
-    background: #000000;
+.primary-btn {
+    background: #ffd21c;
+    color: #171044;
 }
 
-.camera-container {
+.primary-btn:disabled {
+    opacity: .4;
+}
+
+.secondary-btn {
+    background: rgba(255,255,255,.12);
+    color: white;
+    border: 1px solid rgba(255,255,255,.2);
+}
+
+.frame-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    margin: 28px 0;
+}
+
+.frame-option {
+    border: 3px solid transparent;
+    background: rgba(255,255,255,.07);
+    color: white;
+    border-radius: 22px;
+    padding: 14px;
+    cursor: pointer;
+    transition: transform .15s ease, border-color .15s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.frame-option.selected {
+    border-color: #ffd21c;
+    transform: translateY(-3px);
+}
+
+.frame-option img {
+    display: block;
+    width: 100%;
+    height: min(52vh, 520px);
+    object-fit: contain;
+    border-radius: 12px;
+    background: #fff;
+}
+
+.frame-option span {
+    display: block;
+    margin-top: 12px;
+    font-size: 22px;
+    font-weight: 800;
+}
+
+.frame-option small {
+    display: block;
+    margin-top: 4px;
+    opacity: .75;
+    font-size: 15px;
+}
+
+.camera-screen {
+    padding: 0;
+    background: #000;
+}
+
+.camera-wrap {
     position: relative;
     width: 100%;
-    height: 100%;
+    height: 100vh;
+    height: 100dvh;
     overflow: hidden;
-    background: #000000;
+    background: #000;
 }
 
 #video {
@@ -151,349 +164,164 @@ button {
     transform: scaleX(-1);
 }
 
-/* Full-screen iPad "flash" effect for every photo */
-#screenFlash {
+.camera-ui {
     position: absolute;
     inset: 0;
-    z-index: 20;
-    background: #ffffff;
-    opacity: 0;
-    pointer-events: none;
-    visibility: hidden;
-}
-
-#screenFlash.flash-active {
-    visibility: visible;
-    animation: screenFlash 220ms ease-out;
-}
-
-@keyframes screenFlash {
-    0% {
-        opacity: 0;
-    }
-    12% {
-        opacity: 1;
-    }
-    100% {
-        opacity: 0;
-    }
-}
-
-.camera-overlay {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: linear-gradient(
-        to bottom,
-        rgba(0, 0, 0, 0.35),
-        transparent 25%,
-        transparent 75%,
-        rgba(0, 0, 0, 0.35)
-    );
-}
-
-.camera-info {
-    position: absolute;
-    top: 22px;
-    left: 50%;
-    transform: translateX(-50%);
-
-    z-index: 5;
-
     display: flex;
     flex-direction: column;
     align-items: center;
-
-    padding: 10px 18px;
-    border-radius: 20px;
-
-    background: rgba(0, 0, 0, 0.45);
-    backdrop-filter: blur(7px);
-    white-space: nowrap;
+    justify-content: center;
+    pointer-events: none;
+    text-shadow: 0 3px 15px rgba(0,0,0,.8);
 }
 
-.camera-info strong {
-    font-size: 18px;
-}
-
-.camera-info span {
-    margin-top: 4px;
-    font-size: 14px;
-    opacity: 0.8;
+#photoProgress {
+    position: absolute;
+    top: max(22px, env(safe-area-inset-top));
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 22px;
+    font-weight: 800;
 }
 
 #countdown {
-    position: absolute;
-    z-index: 10;
-
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-
-    font-size: clamp(100px, 25vw, 220px);
+    font-size: clamp(110px, 22vw, 230px);
+    line-height: 1;
     font-weight: 900;
-
-    color: #ffffff;
-
-    text-shadow:
-        0 0 20px #00aaff,
-        0 0 50px #0066ff;
-
-    pointer-events: none;
 }
 
-.shutter-button {
+.tip {
     position: absolute;
-    z-index: 6;
-
-    bottom: 28px;
-    left: 50%;
-    transform: translateX(-50%);
-
-    width: 76px;
-    height: 76px;
-
-    border: 6px solid #ffffff;
-    border-radius: 50%;
-
-    background: #ffffff;
-    box-shadow: 0 0 25px rgba(255, 255, 255, 0.8);
-
-    cursor: pointer;
+    bottom: max(28px, env(safe-area-inset-bottom));
+    padding: 10px 18px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.45);
+    font-size: 15px;
 }
 
-/* =========================
-   RESULT
-========================= */
-
-.result-screen {
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: center;
-
-    overflow-y: auto;
-    overflow-x: hidden;
-
-    padding: 20px;
-
-    background:
-        radial-gradient(circle at 50% 10%, #282078, transparent 40%),
-        #080022;
+#flashOverlay {
+    position: absolute;
+    inset: 0;
+    background: white;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 5;
 }
 
-.result-screen h2 {
-    margin-bottom: 18px;
-    font-size: clamp(25px, 5vw, 40px);
-    text-align: center;
-
-    text-shadow: 0 0 15px #008cff;
+#flashOverlay.flash-active {
+    opacity: 1;
 }
 
 .result-layout {
-    width: 100%;
-    min-height: 0;
-
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 30px;
-}
-
-.preview-wrapper {
-    display: flex;
-    justify-content: center;
+    width: min(1200px, 100%);
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) minmax(320px, 460px);
+    gap: 34px;
     align-items: center;
 }
 
-.photostrip-preview {
+.result-photo-card {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    max-height: 90vh;
+}
+
+#resultImage {
     display: block;
-
     width: auto;
-    height: min(78vh, 900px);
-    max-width: 44vw;
-
+    height: min(88vh, 900px);
+    max-width: 100%;
     object-fit: contain;
-
-    border-radius: 7px;
-
-    box-shadow:
-        0 0 20px rgba(0, 174, 255, 0.45),
-        0 0 50px rgba(100, 0, 255, 0.3);
 }
 
-.download-panel {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-
-    min-width: 230px;
-
-    text-align: center;
-}
-
-.download-panel h3 {
-    margin-bottom: 14px;
-    font-size: 20px;
-}
-
-#qrcode {
-    width: 204px;
-    min-height: 204px;
-
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    padding: 12px;
-
-    background: #ffffff;
-    border-radius: 10px;
-}
-
-#qrcode img,
-#qrcode canvas {
-    display: block;
-}
-
-.qr-hint {
-    margin-top: 10px;
-    max-width: 220px;
-    font-size: 13px;
-    line-height: 1.35;
-    opacity: 0.75;
-}
-
-.status {
-    max-width: 270px;
-    margin-top: 14px;
-
+.qr-title {
+    margin-top: 20px;
+    font-weight: 800;
     font-size: 14px;
-    line-height: 1.4;
-
-    opacity: 0.8;
+    letter-spacing: .8px;
 }
 
-.download-panel .primary-button {
-    margin-top: 15px;
-}
-
-.secondary-button {
-    margin-top: 12px;
-    padding: 12px 24px;
-    font-size: 15px;
-
-    background: rgba(255, 255, 255, 0.13);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-}
-
-/* =========================
-   LOADING
-========================= */
-
-.loading {
-    position: fixed;
-    inset: 0;
-    z-index: 100;
-
-    display: none;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-
-    background: rgba(0, 0, 0, 0.78);
-    backdrop-filter: blur(8px);
-}
-
-.loading.active {
+.qr-box {
+    width: 210px;
+    height: 210px;
+    margin: 14px auto 22px;
+    background: white;
     display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+    border-radius: 14px;
 }
 
-.spinner {
-    width: 55px;
-    height: 55px;
-
-    border: 5px solid rgba(255, 255, 255, 0.2);
-    border-top-color: #ffffff;
-    border-radius: 50%;
-
-    animation: spin 0.8s linear infinite;
+.qr-box img {
+    width: 180px !important;
+    height: 180px !important;
 }
 
-.loading p {
-    margin-top: 16px;
-    font-size: 18px;
-    font-weight: 700;
+.button-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
 }
 
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
+#status {
+    min-height: 28px;
 }
-
-/* =========================
-   TABLET / IPAD
-========================= */
 
 @media (max-width: 800px) {
-    .result-layout {
-        gap: 20px;
+    .screen {
+        padding: 16px;
     }
 
-    .photostrip-preview {
-        height: min(82vh, 900px);
-        width: auto;
-        max-width: 45vw;
+    .start-card,
+    .selector-card,
+    .result-card {
+        padding: 22px;
     }
-}
 
-/* =========================
-   PORTRAIT PHONE
-========================= */
+    .frame-grid {
+        gap: 12px;
+    }
 
-@media (max-width: 600px) {
-    .result-screen {
-        padding: 15px;
+    .frame-option img {
+        height: min(50vh, 430px);
     }
 
     .result-layout {
-        flex-direction: column;
+        grid-template-columns: 1fr;
     }
 
-    .photostrip-preview {
-        width: auto;
-        height: min(62vh, 700px);
+    #resultImage {
+        height: min(60vh, 650px);
         max-width: 82vw;
     }
 
-    .download-panel {
-        min-width: 0;
+    .result-card {
+        width: min(100%, 520px);
     }
 }
 
-/* =========================
-   LANDSCAPE
-========================= */
-
-@media (orientation: landscape) and (max-height: 600px) {
-    .camera-info {
-        top: 12px;
+@media (max-width: 560px) {
+    .frame-grid {
+        grid-template-columns: 1fr 1fr;
     }
 
-    .shutter-button {
-        bottom: 15px;
+    .frame-option {
+        padding: 8px;
+        border-radius: 16px;
     }
 
-    .result-screen {
-        padding: 10px 20px;
+    .frame-option img {
+        height: 45vh;
     }
 
-    .result-screen h2 {
-        margin-bottom: 8px;
-        font-size: 25px;
+    .frame-option span {
+        font-size: 17px;
     }
 
-    .photostrip-preview {
-        max-height: 80vh;
+    .frame-option small {
+        font-size: 13px;
     }
 }

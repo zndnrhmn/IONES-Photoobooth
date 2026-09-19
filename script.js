@@ -1,428 +1,274 @@
-/* =========================================================
-   IONES 2026 PHOTOBOOTH
-   =========================================================
-
-   FILES:
-   index.html
-   style.css
-   script.js
-   frame.png
-
-   Put frame.png in the SAME folder as these 3 files.
-
-   Google Drive:
-   Replace GOOGLE_SCRIPT_URL with your Apps Script Web App URL.
-   ========================================================= */
-
-
-/* =========================================================
-   GOOGLE APPS SCRIPT URL
-   ========================================================= */
+/* IONES 2026 Photobooth
+   Frame selector + iPad-friendly camera + 8-second countdown + screen flash
+*/
 
 const GOOGLE_SCRIPT_URL =
     "https://script.google.com/macros/s/AKfycbwbC6aVWF8ufwBy4GLe6eluiMJXXU-h3QapD55_ct1W8Yp6XhEwrXm1YKWbJvgDMmYS/exec";
 
-// Google Drive folder shown in the QR code.
-// Replace PASTE_FOLDER_ID with the ID of your event's Drive folder.
 const GOOGLE_DRIVE_FOLDER_URL =
     "https://drive.google.com/drive/folders/1ebG7aFVdHIKLrXDedEtNM-Y0A0J97L1S";
 
-
-const FRAME_WIDTH = 685;
-const FRAME_HEIGHT = 2048;
+const PHOTO_COUNTDOWN_SECONDS = 8;
 
 
-const PHOTO_SLOTS = [
-    {
-        x: 60,
-        y: 149,
-        width: 561,
-        height: 347
+const FRAME_CONFIGS = {
+    frame1: {
+        name: "Frame 1",
+        file: "frame1.png",
+        width: 684,
+        height: 2048,
+        slots: [
+            { x: 60, y: 73, width: 562, height: 423 },
+            { x: 60, y: 539, width: 562, height: 422 },
+            { x: 60, y: 1004, width: 562, height: 422 },
+            { x: 60, y: 1469, width: 562, height: 423 }
+        ]
     },
-    {
-        x: 60,
-        y: 539,
-        width: 561,
-        height: 422
-    },
-    {
-        x: 60,
-        y: 1004,
-        width: 561,
-        height: 422
-    },
-    {
-        x: 60,
-        y: 1469,
-        width: 561,
-        height: 328
+    frame2: {
+        name: "Frame 2",
+        file: "frame2.png",
+        width: 1793,
+        height: 2048,
+        slots: [
+            { x: 158, y: 178, width: 1477, height: 756 },
+            { x: 158, y: 1114, width: 1477, height: 756 }
+        ]
     }
-];
+};
 
 
-/* =========================================================
-   ELEMENTS
-   ========================================================= */
-
-const startScreen =
-    document.getElementById("startScreen");
-
-const cameraScreen =
-    document.getElementById("cameraScreen");
-
-const resultScreen =
-    document.getElementById("resultScreen");
-
-const startButton =
-    document.getElementById("startButton");
-
-const captureButton =
-    document.getElementById("captureButton");
-
-const retakeButton =
-    document.getElementById("retakeButton");
-
-const downloadButton =
-    document.getElementById("downloadButton");
-
-const video =
-    document.getElementById("video");
-
-const countdownElement =
-    document.getElementById("countdown");
-
-const flashElement =
-    document.getElementById("screenFlash");
-
-const photoCounter =
-    document.getElementById("photoCounter");
-
-const resultImage =
-    document.getElementById("resultImage");
-
-const qrCode =
-    document.getElementById("qrcode");
-
-const statusElement =
-    document.getElementById("status");
-
-const loading =
-    document.getElementById("loading");
-
-
-/* =========================================================
-   VARIABLES
-   ========================================================= */
-
-let stream = null;
+let selectedFrameKey = null;
+let selectedFrame = null;
 let photos = [];
+let stream = null;
 let finalImageData = null;
-let finalDownloadURL = null;
-let isTakingPhotos = false;
 
+const startScreen = document.getElementById("startScreen");
+const frameScreen = document.getElementById("frameScreen");
+const cameraScreen = document.getElementById("cameraScreen");
+const resultScreen = document.getElementById("resultScreen");
 
-/* =========================================================
-   FRAME IMAGE
-   ========================================================= */
+const startButton = document.getElementById("startButton");
+const continueButton = document.getElementById("continueButton");
+const retakeButton = document.getElementById("retakeButton");
+const downloadButton = document.getElementById("downloadButton");
 
-const frameImage = new Image();
+const frameOptions = document.querySelectorAll(".frame-option");
+const framePreview1 = document.getElementById("framePreview1");
+const framePreview2 = document.getElementById("framePreview2");
 
-frameImage.src = "frame.png";
+const video = document.getElementById("video");
+const countdown = document.getElementById("countdown");
+const photoProgress = document.getElementById("photoProgress");
+const flashOverlay = document.getElementById("flashOverlay");
 
-
-/* =========================================================
-   SCREEN CONTROL
-   ========================================================= */
+const resultImage = document.getElementById("resultImage");
+const qrCode = document.getElementById("qrCode");
+const statusElement = document.getElementById("status");
 
 function showScreen(screen) {
-    document.querySelectorAll(".screen").forEach(item => {
-        item.classList.remove("active");
+    [startScreen, frameScreen, cameraScreen, resultScreen].forEach(s => {
+        if (s) s.classList.remove("active");
     });
-
     screen.classList.add("active");
 }
 
+function loadFramePreviews() {
+    framePreview1.src = FRAME_CONFIGS.frame1.file;
+    framePreview2.src = FRAME_CONFIGS.frame2.file;
+}
 
-/* =========================================================
-   CAMERA
-   ========================================================= */
+function selectFrame(key) {
+    selectedFrameKey = key;
+    selectedFrame = FRAME_CONFIGS[key];
+
+    frameOptions.forEach(option => {
+        option.classList.toggle(
+            "selected",
+            option.dataset.frame === key
+        );
+    });
+
+    continueButton.disabled = false;
+}
+
+async function openFrameSelector() {
+    loadFramePreviews();
+    showScreen(frameScreen);
+}
 
 async function startCamera() {
+    if (!selectedFrame) return;
+
     try {
-        if (!navigator.mediaDevices ||
-            !navigator.mediaDevices.getUserMedia) {
-
-            throw new Error(
-                "Camera API is not available. " +
-                "Use HTTPS or localhost."
-            );
-        }
-
         stream = await navigator.mediaDevices.getUserMedia({
             video: {
-                facingMode: {
-                    ideal: "user"
-                },
-                width: {
-                    ideal: 1280
-                },
-                height: {
-                    ideal: 720
-                }
+                facingMode: { ideal: "user" },
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
             },
             audio: false
         });
 
         video.srcObject = stream;
-
         await video.play();
 
+        showScreen(cameraScreen);
+        await new Promise(r => setTimeout(r, 700));
+        await takePhotos();
     } catch (error) {
         console.error(error);
-
         alert(
-            "Camera access failed.\n\n" +
-            "Please allow camera permission " +
-            "and make sure the website uses HTTPS."
+            "Camera access is required. Please allow camera access in Safari and try again."
         );
-
-        showScreen(startScreen);
     }
 }
 
-
 function stopCamera() {
-    if (!stream) return;
-
-    stream.getTracks().forEach(track => {
-        track.stop();
-    });
-
-    stream = null;
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+    }
     video.srcObject = null;
 }
 
-
-/* =========================================================
-   COUNTDOWN
-   ========================================================= */
-
-function runCountdown(seconds = 3) {
-    return new Promise(resolve => {
-        let count = seconds;
-
-        countdownElement.textContent = count;
-
-        const interval = setInterval(() => {
-            count--;
-
-            if (count > 0) {
-                countdownElement.textContent = count;
-            } else {
-                clearInterval(interval);
-                countdownElement.textContent = "";
-                resolve();
-            }
-        }, 1000);
-    });
+function wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+async function runCountdown(seconds) {
+    for (let n = seconds; n >= 1; n--) {
+        countdown.textContent = n;
+        await wait(1000);
+    }
 
-/* =========================================================
-   SCREEN FLASH
-   ========================================================= */
-
-function triggerScreenFlash() {
-    if (!flashElement) return;
-
-    flashElement.classList.remove("flash-active");
-
-    // Force a reflow so repeated flashes always animate.
-    void flashElement.offsetWidth;
-
-    flashElement.classList.add("flash-active");
-
-    setTimeout(() => {
-        flashElement.classList.remove("flash-active");
-    }, 220);
+    countdown.textContent = "📸";
+    await screenFlash();
 }
 
+async function screenFlash() {
+    flashOverlay.classList.add("flash-active");
+    await wait(180);
+    flashOverlay.classList.remove("flash-active");
+    await wait(100);
+}
 
-/* =========================================================
-   CAPTURE PHOTO
-   ========================================================= */
+function captureVideoFrame() {
+    const canvas = document.createElement("canvas");
 
-function capturePhoto() {
-    const canvas =
-        document.createElement("canvas");
+    // Keep a useful camera resolution while preserving the video's aspect ratio.
+    const maxWidth = 1280;
+    const scale = Math.min(1, maxWidth / video.videoWidth);
+    canvas.width = Math.max(1, Math.round(video.videoWidth * scale));
+    canvas.height = Math.max(1, Math.round(video.videoHeight * scale));
 
-    const width = video.videoWidth;
-    const height = video.videoHeight;
+    const ctx = canvas.getContext("2d", { willReadFrequently: false });
 
-    canvas.width = width;
-    canvas.height = height;
-
-    const ctx = canvas.getContext("2d");
-
-    /*
-     * Mirror selfie camera so the preview
-     * and final photo look natural.
-     */
-
-    ctx.translate(width, 0);
+    // Mirror the captured image to match the front-camera preview.
+    ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
 
     ctx.drawImage(
         video,
         0,
         0,
-        width,
-        height
+        canvas.width,
+        canvas.height
     );
 
-    const image = new Image();
-
-    image.src = canvas.toDataURL(
-        "image/jpeg",
-        0.92
-    );
-
-    return image;
+    return canvas;
 }
 
+async function takePhotos() {
+    photos = [];
 
-/* =========================================================
-   WAIT FOR IMAGE
-   ========================================================= */
+    for (let i = 0; i < selectedFrame.slots.length; i++) {
+        photoProgress.textContent =
+            `Photo ${i + 1} of ${selectedFrame.slots.length}`;
 
-function waitForImage(image) {
-    return new Promise(resolve => {
-        if (image.complete &&
-            image.naturalWidth > 0) {
+        await runCountdown(PHOTO_COUNTDOWN_SECONDS);
 
-            resolve();
-            return;
-        }
+        const captured = captureVideoFrame();
+        photos.push(captured);
 
-        image.onload = resolve;
-    });
+        await wait(450);
+    }
+
+    stopCamera();
+
+    const result = await composePhotostrip();
+    finalImageData = result;
+
+    resultImage.src = result;
+
+    generateQRCode(GOOGLE_DRIVE_FOLDER_URL);
+
+    statusElement.textContent = "Uploading photo to Google Drive...";
+
+    showScreen(resultScreen);
+
+    uploadToGoogleDrive(result)
+        .then(() => {
+            statusElement.textContent =
+                "Photo uploaded successfully. Scan the QR code to open the folder.";
+        })
+        .catch(error => {
+            console.error("Upload error:", error);
+            statusElement.textContent =
+                "Upload failed. You can still download the photo.";
+        });
 }
 
+function drawImageCover(ctx, image, x, y, width, height) {
+    const sourceWidth = image.videoWidth || image.naturalWidth || image.width;
+    const sourceHeight = image.videoHeight || image.naturalHeight || image.height;
 
-/* =========================================================
-   DRAW IMAGE COVER
-   Prevents stretching/distortion.
-   ========================================================= */
+    const sourceRatio = sourceWidth / sourceHeight;
+    const targetRatio = width / height;
 
-function drawImageCover(
-    ctx,
-    image,
-    x,
-    y,
-    width,
-    height
-) {
-    const imageRatio =
-        image.width / image.height;
+    let sx = 0;
+    let sy = 0;
+    let sw = sourceWidth;
+    let sh = sourceHeight;
 
-    const boxRatio =
-        width / height;
-
-    let sourceWidth;
-    let sourceHeight;
-    let sourceX;
-    let sourceY;
-
-    if (imageRatio > boxRatio) {
-
-        /*
-         * Photo is wider than the slot.
-         * Crop left/right.
-         */
-
-        sourceHeight = image.height;
-
-        sourceWidth =
-            image.height * boxRatio;
-
-        sourceX =
-            (image.width - sourceWidth) / 2;
-
-        sourceY = 0;
-
+    if (sourceRatio > targetRatio) {
+        sw = sourceHeight * targetRatio;
+        sx = (sourceWidth - sw) / 2;
     } else {
-
-        /*
-         * Photo is taller than the slot.
-         * Crop top/bottom.
-         */
-
-        sourceWidth = image.width;
-
-        sourceHeight =
-            image.width / boxRatio;
-
-        sourceX = 0;
-
-        sourceY =
-            (image.height - sourceHeight) / 2;
+        sh = sourceWidth / targetRatio;
+        sy = (sourceHeight - sh) / 2;
     }
 
     ctx.drawImage(
         image,
-
-        sourceX,
-        sourceY,
-        sourceWidth,
-        sourceHeight,
-
-        x,
-        y,
-        width,
-        height
+        sx, sy, sw, sh,
+        x, y, width, height
     );
 }
 
+async function composePhotostrip() {
+    const frameImage = await loadImage(selectedFrame.file);
 
-/* =========================================================
-   CREATE FINAL PHOTOSTRIP
-   ========================================================= */
+    const canvas = document.createElement("canvas");
+    canvas.width = selectedFrame.width;
+    canvas.height = selectedFrame.height;
 
-async function createFinalPhotostrip() {
-    await waitForImage(frameImage);
+    const ctx = canvas.getContext("2d");
 
-    const canvas =
-        document.createElement("canvas");
+    // Draw a transparent base.
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    canvas.width = frameImage.naturalWidth || FRAME_WIDTH;
-    canvas.height = frameImage.naturalHeight || FRAME_HEIGHT;
-
-    const ctx =
-        canvas.getContext("2d");
-
-    /*
-     * Draw each photo behind the frame.
-     */
-
-    for (let i = 0; i < photos.length; i++) {
-        const slot = PHOTO_SLOTS[i];
+    selectedFrame.slots.forEach((slot, i) => {
+        const photo = photos[i];
 
         ctx.save();
-
-        // Keep the photo strictly inside its PNG photo area.
         ctx.beginPath();
-        ctx.rect(
-            slot.x,
-            slot.y,
-            slot.width,
-            slot.height
-        );
+        ctx.rect(slot.x, slot.y, slot.width, slot.height);
         ctx.clip();
 
-        // Cover the entire photo area while preserving aspect ratio.
         drawImageCover(
             ctx,
-            photos[i],
+            photo,
             slot.x,
             slot.y,
             slot.width,
@@ -430,459 +276,196 @@ async function createFinalPhotostrip() {
         );
 
         ctx.restore();
-    }
+    });
 
-    /*
-     * Draw the PNG frame ON TOP.
-     */
+    // Draw the original PNG on top. Its transparent photo areas reveal the photos underneath.
+    ctx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
 
-    ctx.drawImage(
-        frameImage,
-        0,
-        0,
-        canvas.width,
-        canvas.height
-    );
-
-    /*
-     * PNG preserves the transparent areas
-     * in the uploaded frame.
-     */
-
-    return canvas.toDataURL(
-        "image/png"
-    );
+    return canvas.toDataURL("image/png");
 }
 
-
-/* =========================================================
-   TAKE FOUR PHOTOS
-   ========================================================= */
-
-const PHOTO_COUNTDOWN_SECONDS = 8;
-
-async function takePhotos() {
-    if (isTakingPhotos) return;
-
-    isTakingPhotos = true;
-    photos = [];
-
-    captureButton.style.display = "none";
-
-    for (let i = 0; i < 4; i++) {
-
-        photoCounter.textContent =
-            `Photo ${i + 1} of 4`;
-
-        /*
-         * Give the user 8 seconds to pose.
-         */
-
-        await runCountdown(PHOTO_COUNTDOWN_SECONDS);
-
-        // Flash the iPad screen for every photo.
-        triggerScreenFlash();
-
-        // Capture just after the flash starts.
-        const photo =
-            capturePhoto();
-
-        await waitForImage(photo);
-
-        photos.push(photo);
-
-        /*
-         * Short pause after each shot; the next photo has its own 8-second countdown.
-         */
-
-        await new Promise(resolve => {
-            setTimeout(resolve, 700);
-        });
-    }
-
-    isTakingPhotos = false;
-
-    captureButton.style.display = "block";
-
-    await showFinalResult();
-}
-
-
-/* =========================================================
-   FINAL RESULT
-   ========================================================= */
-
-async function showFinalResult() {
-    stopCamera();
-
-    showScreen(resultScreen);
-
-    loading.classList.add("active");
-
-    statusElement.textContent =
-        "Creating your photostrip...";
-
-    try {
-
-        finalImageData =
-            await createFinalPhotostrip();
-
-        resultImage.src =
-            finalImageData;
-
-        // The QR code always points to the shared Google Drive folder,
-        // not to an individual photo.
-        generateQRCode(GOOGLE_DRIVE_FOLDER_URL);
-
-        /*
-         * Upload if Google Apps Script
-         * has already been configured.
-         */
-
-        if (
-            GOOGLE_SCRIPT_URL &&
-            !GOOGLE_SCRIPT_URL.includes(
-                "PASTE_YOUR"
-            )
-        ) {
-
-            statusElement.textContent =
-                "Uploading to Google Drive...";
-
-            await uploadToGoogleDrive(
-                finalImageData
-            );
-
-        } else {
-
-            /*
-             * Google Drive is not configured yet.
-             */
-
-            statusElement.textContent =
-                "Photo ready! Configure Google Drive for QR download.";
-
-            /*
-             * Direct download still works.
-             */
-
-            downloadButton.disabled = false;
-        }
-
-    } catch (error) {
-
-        console.error(error);
-
-        statusElement.textContent =
-            "Photo created. Scan the QR code to open the photo folder, or download the photo here.";
-
-    }
-
-    loading.classList.remove("active");
-}
-
-
-/* =========================================================
-   GOOGLE DRIVE UPLOAD
-   ========================================================= */
-
-async function uploadToGoogleDrive(imageData) {
-
-    statusElement.textContent =
-        "Uploading photo to Google Drive...";
-
-    const fileName =
-        "IONES-Photobooth-" +
-        Date.now() +
-        ".jpg";
-
-    try {
-        /*
-         * iPad/Safari can be unreliable when a very large PNG is placed
-         * inside a hidden form input. Compress the final photostrip to
-         * JPEG before sending it. The original PNG is still kept for the
-         * Download Photo button.
-         */
-        const uploadData = await compressForUpload(imageData);
-
-        /*
-         * Send a simple URL-encoded POST with no-cors.
-         * This does not require the browser to read the Apps Script
-         * response, which avoids Safari cross-origin iframe problems.
-         */
-        const body = new URLSearchParams();
-        body.append("image", uploadData);
-        body.append("fileName", fileName);
-
-        await fetch(GOOGLE_SCRIPT_URL, {
-            method: "POST",
-            mode: "no-cors",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
-            },
-            body: body.toString()
-        });
-
-        finalDownloadURL = null;
-
-        statusElement.textContent =
-            "Photo uploaded to Google Drive. Scan the QR code to open the photo folder.";
-
-    } catch (error) {
-        console.error("Google Drive upload error:", error);
-        throw error;
-    }
-}
-
-
-/*
- * Compress the final photostrip before uploading.
- * This is specifically to make the upload more reliable on iPad/Safari.
- */
-function compressForUpload(imageData) {
+function loadImage(src) {
     return new Promise((resolve, reject) => {
-        const image = new Image();
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+    });
+}
 
-        image.onload = () => {
+function generateQRCode(url) {
+    qrCode.innerHTML = "";
+
+    if (typeof QRCode === "undefined") {
+        qrCode.textContent = "QR library not loaded";
+        return;
+    }
+
+    new QRCode(qrCode, {
+        text: url,
+        width: 180,
+        height: 180,
+        correctLevel: QRCode.CorrectLevel.H
+    });
+}
+
+function uploadToGoogleDrive(pngData) {
+    statusElement.textContent = "Uploading photo to Google Drive...";
+
+    // iPad Safari can create a very large PNG data URL.
+    // Convert only the upload copy to JPEG to make the POST much smaller.
+    const uploadCanvas = document.createElement("canvas");
+    const uploadImage = new Image();
+
+    return new Promise((resolve, reject) => {
+        uploadImage.onload = () => {
             try {
-                const canvas = document.createElement("canvas");
-                canvas.width = image.naturalWidth || FRAME_WIDTH;
-                canvas.height = image.naturalHeight || FRAME_HEIGHT;
+                uploadCanvas.width = uploadImage.naturalWidth;
+                uploadCanvas.height = uploadImage.naturalHeight;
 
-                const ctx = canvas.getContext("2d", {
-                    alpha: false
-                });
+                const ctx = uploadCanvas.getContext("2d");
 
-                // White background for JPEG.
+                // White background because JPEG does not support transparency.
                 ctx.fillStyle = "#ffffff";
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-
-                const compressed = canvas.toDataURL(
-                    "image/jpeg",
-                    0.88
+                ctx.fillRect(0, 0, uploadCanvas.width, uploadCanvas.height);
+                ctx.drawImage(
+                    uploadImage,
+                    0,
+                    0,
+                    uploadCanvas.width,
+                    uploadCanvas.height
                 );
 
-                resolve(compressed);
+                const jpegData = uploadCanvas.toDataURL(
+                    "image/jpeg",
+                    0.82
+                );
+
+                const fileName =
+                    `IONES-${selectedFrameKey}-${Date.now()}.jpg`;
+
+                // IMPORTANT for iPad/Safari:
+                // use a hidden iframe, not a new tab/window.
+                const iframeName =
+                    "ionesUploadFrame_" + Date.now();
+
+                const iframe = document.createElement("iframe");
+                iframe.name = iframeName;
+                iframe.style.position = "fixed";
+                iframe.style.width = "1px";
+                iframe.style.height = "1px";
+                iframe.style.opacity = "0";
+                iframe.style.pointerEvents = "none";
+                iframe.style.border = "0";
+                document.body.appendChild(iframe);
+
+                const form = document.createElement("form");
+                form.method = "POST";
+                form.action = GOOGLE_SCRIPT_URL;
+                form.target = iframeName;
+                form.enctype = "application/x-www-form-urlencoded";
+                form.style.display = "none";
+
+                const imageInput = document.createElement("input");
+                imageInput.type = "hidden";
+                imageInput.name = "image";
+                imageInput.value = jpegData;
+
+                const fileInput = document.createElement("input");
+                fileInput.type = "hidden";
+                fileInput.name = "fileName";
+                fileInput.value = fileName;
+
+                form.appendChild(imageInput);
+                form.appendChild(fileInput);
+                document.body.appendChild(form);
+
+                let finished = false;
+
+                const cleanup = () => {
+                    setTimeout(() => {
+                        form.remove();
+                        iframe.remove();
+                    }, 1000);
+                };
+
+                // Apps Script returns an HTML page. Its load event means
+                // the POST request completed at the browser level.
+                iframe.addEventListener("load", () => {
+                    if (finished) return;
+                    finished = true;
+                    cleanup();
+                    resolve();
+                });
+
+                // Safety timeout. This prevents the photobooth from hanging
+                // forever if Safari does not fire iframe load.
+                setTimeout(() => {
+                    if (finished) return;
+                    finished = true;
+                    cleanup();
+                    resolve();
+                }, 12000);
+
+                form.submit();
+
+                // Release temporary objects after submission.
+                setTimeout(() => {
+                    uploadCanvas.width = 1;
+                    uploadCanvas.height = 1;
+                }, 1000);
+
             } catch (error) {
                 reject(error);
             }
         };
 
-        image.onerror = () => {
-            reject(new Error("Could not prepare image for upload."));
+        uploadImage.onerror = () => {
+            reject(new Error("Could not prepare the image for upload."));
         };
 
-        image.src = imageData;
+        uploadImage.src = pngData;
     });
 }
 
+function downloadFinalImage() {
+    if (!finalImageData) return;
 
-/* =========================================================
-   QR CODE
-   ========================================================= */
+    const link = document.createElement("a");
+    link.href = finalImageData;
+    link.download =
+        `IONES-${selectedFrameKey}-Photostrip.png`;
 
-function generateQRCode(url) {
-
-    qrCode.innerHTML = "";
-
-    if (!url || url.includes("PASTE_FOLDER_ID")) {
-
-        console.error(
-            "QR ERROR: Google Drive folder URL is not configured."
-        );
-
-        qrCode.innerHTML =
-            "<p style='color:#000;text-align:center;font-size:12px;'>Set your Google Drive folder URL in script.js</p>";
-
-        return;
-    }
-
-
-    console.log(
-        "Generating QR for:",
-        url
-    );
-
-
-    if (
-        typeof QRCode ===
-        "undefined"
-    ) {
-
-        console.error(
-            "QRCode library is not loaded."
-        );
-
-        qrCode.innerHTML =
-            "<p style='color:#000;text-align:center;font-size:12px;'>QR library failed to load</p>";
-
-        return;
-    }
-
-
-    new QRCode(
-        qrCode,
-        {
-            text: url,
-
-            width: 180,
-
-            height: 180,
-
-            correctLevel:
-                QRCode.CorrectLevel.H
-        }
-    );
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
 }
 
+function retake() {
+    stopCamera();
+    photos = [];
+    finalImageData = null;
+    showScreen(frameScreen);
+}
 
-/* =========================================================
-   DOWNLOAD
-   ========================================================= */
+startButton.addEventListener("click", openFrameSelector);
 
-downloadButton.addEventListener(
-    "click",
-    () => {
+frameOptions.forEach(option => {
+    option.addEventListener("click", () => {
+        selectFrame(option.dataset.frame);
+    });
+});
 
-        if (!finalImageData) {
-            return;
-        }
+continueButton.addEventListener("click", startCamera);
+downloadButton.addEventListener("click", downloadFinalImage);
+retakeButton.addEventListener("click", retake);
 
-        const link =
-            document.createElement("a");
+window.addEventListener("beforeunload", stopCamera);
 
-        link.href =
-            finalImageData;
+loadFramePreviews();
 
-        link.download =
-            "IONES-Photobooth.png";
-
-        document.body.appendChild(link);
-
-        link.click();
-
-        link.remove();
-    }
-);
-
-
-/* =========================================================
-   START
-   ========================================================= */
-
-startButton.addEventListener(
-    "click",
-    async () => {
-
-        showScreen(cameraScreen);
-
-        await startCamera();
-
-        /*
-         * Wait for camera to stabilize.
-         */
-
-        await new Promise(resolve => {
-            setTimeout(resolve, 1000);
-        });
-
-        if (stream) {
-            await takePhotos();
-        }
-    }
-);
-
-
-/* =========================================================
-   MANUAL CAPTURE BUTTON
-   =========================================================
-
-   The normal flow automatically takes all 4 photos.
-   This button is kept as a fallback/manual option.
-   ========================================================= */
-
-captureButton.addEventListener(
-    "click",
-    async () => {
-
-        await takePhotos();
-
-    }
-);
-
-
-/* =========================================================
-   RETAKE
-   ========================================================= */
-
-retakeButton.addEventListener(
-    "click",
-    async () => {
-
-        stopCamera();
-
-        photos = [];
-        finalImageData = null;
-        finalDownloadURL = null;
-
-        resultImage.src = "";
-        qrCode.innerHTML = "";
-
-        statusElement.textContent =
-            "Preparing your photo...";
-
-        showScreen(cameraScreen);
-
-        await startCamera();
-
-        await new Promise(resolve => {
-            setTimeout(resolve, 1000);
-        });
-
-        if (stream) {
-            await takePhotos();
-        }
-    }
-);
-
-
-/* =========================================================
-   PREVENT DOUBLE-TAP ZOOM
-   ========================================================= */
-
-document.addEventListener(
-    "dblclick",
-    event => {
-        event.preventDefault();
-    },
-    {
-        passive: false
-    }
-);
-
-
-/* =========================================================
-   FRAME ERROR CHECK
-   ========================================================= */
-
-frameImage.onload = () => {
-    console.log(
-        "IONES frame loaded:",
-        frameImage.width,
-        "x",
-        frameImage.height
-    );
-};
-
-frameImage.onerror = () => {
-    console.error(
-        "frame.png could not be loaded."
-    );
-
-    alert(
-        "frame.png could not be loaded.\n\n" +
-        "Please make sure frame.png is in the same folder " +
-        "as index.html."
-    );
-};
+// Preload the frame images before a photo session.
+Object.values(FRAME_CONFIGS).forEach(config => {
+    const img = new Image();
+    img.src = config.file;
+});
