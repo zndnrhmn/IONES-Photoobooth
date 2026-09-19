@@ -394,8 +394,8 @@ async function createFinalPhotostrip() {
     const canvas =
         document.createElement("canvas");
 
-    canvas.width = FRAME_WIDTH;
-    canvas.height = FRAME_HEIGHT;
+    canvas.width = frameImage.naturalWidth || FRAME_WIDTH;
+    canvas.height = frameImage.naturalHeight || FRAME_HEIGHT;
 
     const ctx =
         canvas.getContext("2d");
@@ -407,6 +407,19 @@ async function createFinalPhotostrip() {
     for (let i = 0; i < photos.length; i++) {
         const slot = PHOTO_SLOTS[i];
 
+        ctx.save();
+
+        // Keep the photo strictly inside its PNG photo area.
+        ctx.beginPath();
+        ctx.rect(
+            slot.x,
+            slot.y,
+            slot.width,
+            slot.height
+        );
+        ctx.clip();
+
+        // Cover the entire photo area while preserving aspect ratio.
         drawImageCover(
             ctx,
             photos[i],
@@ -415,6 +428,8 @@ async function createFinalPhotostrip() {
             slot.width,
             slot.height
         );
+
+        ctx.restore();
     }
 
     /*
@@ -425,8 +440,8 @@ async function createFinalPhotostrip() {
         frameImage,
         0,
         0,
-        FRAME_WIDTH,
-        FRAME_HEIGHT
+        canvas.width,
+        canvas.height
     );
 
     /*
@@ -444,6 +459,8 @@ async function createFinalPhotostrip() {
    TAKE FOUR PHOTOS
    ========================================================= */
 
+const PHOTO_COUNTDOWN_SECONDS = 8;
+
 async function takePhotos() {
     if (isTakingPhotos) return;
 
@@ -458,10 +475,10 @@ async function takePhotos() {
             `Photo ${i + 1} of 4`;
 
         /*
-         * Give the user 3 seconds to pose.
+         * Give the user 8 seconds to pose.
          */
 
-        await runCountdown(3);
+        await runCountdown(PHOTO_COUNTDOWN_SECONDS);
 
         // Flash the iPad screen for every photo.
         triggerScreenFlash();
@@ -475,7 +492,7 @@ async function takePhotos() {
         photos.push(photo);
 
         /*
-         * Short pause between shots.
+         * Short pause after each shot; the next photo has its own 8-second countdown.
          */
 
         await new Promise(resolve => {

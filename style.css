@@ -308,8 +308,9 @@ button {
 .photostrip-preview {
     display: block;
 
-    width: min(32vw, 340px);
-    max-height: 74vh;
+    width: auto;
+    height: min(78vh, 900px);
+    max-width: 44vw;
 
     object-fit: contain;
 
@@ -440,7 +441,9 @@ button {
     }
 
     .photostrip-preview {
-        width: min(38vw, 300px);
+        height: min(82vh, 900px);
+        width: auto;
+        max-width: 45vw;
     }
 }
 
@@ -458,8 +461,9 @@ button {
     }
 
     .photostrip-preview {
-        width: min(58vw, 280px);
-        max-height: 58vh;
+        width: auto;
+        height: min(62vh, 700px);
+        max-width: 82vw;
     }
 
     .download-panel {
